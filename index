@@ -29,6 +29,10 @@
             width: 300px;
         }
 
+        #user-list {
+            margin-right: 20px;
+        }
+
         #game-container {
             display: flex;
             flex-direction: column;
@@ -91,6 +95,7 @@
 <body>
     <div id="chat-container">
         <div id="chat-box"></div>
+        <div id="user-list"></div>
         <div id="game-container">
             <div id="board"></div>
             <div id="message-input">
@@ -128,6 +133,8 @@
                 handleGameRequest(message.username, message.userId);
             } else if (message.gameState) {
                 handleGameState(message.gameState);
+            } else if (message.userList) {
+                displayUserList(message.userList);
             } else {
                 displayMessage(message.username, message.message, message.color);
             }
@@ -167,6 +174,17 @@
             messageElement.style.color = color;
             chatBox.appendChild(messageElement);
             chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function displayUserList(userList) {
+            const userListContainer = document.getElementById('user-list');
+            userListContainer.innerHTML = '<h3>Online Users</h3>';
+            
+            userList.forEach(user => {
+                const userElement = document.createElement('div');
+                userElement.textContent = `${user.username}#${user.userId}`;
+                userListContainer.appendChild(userElement);
+            });
         }
 
         function toggleOptions() {

@@ -4,6 +4,7 @@ require __DIR__ . '/vendor/autoload.php';
 use Ratchet\MessageComponentInterface;
 use Ratchet\ConnectionInterface;
 use Ratchet\Server\IoServer;
+use Ratchet\Http\HttpServer;
 use Ratchet\WebSocket\WsServer;
 
 class Chat implements MessageComponentInterface
@@ -15,7 +16,7 @@ class Chat implements MessageComponentInterface
         $this->clients = new \SplObjectStorage;
     }
 
-    public function onOpen(ConnectionInterface $conn)
+    public function onOpen(ConnectionInterface $conn, $request = null)
     {
         $this->clients->attach($conn);
 
@@ -52,7 +53,11 @@ class Chat implements MessageComponentInterface
 }
 
 $server = IoServer::factory(
-    new WsServer(new Chat()),
+    new HttpServer(
+        new WsServer(
+            new Chat()
+        )
+    ),
     8080
 );
 

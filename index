@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Chat</title>
+    <style>
+        #chat-box {
+            height: 300px;
+            overflow-y: scroll;
+            border: 1px solid #ccc;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="chat-box"></div>
+    <input type="text" id="message" placeholder="Type your message">
+    <button onclick="sendMessage()">Send</button>
+
+    <script>
+        function sendMessage() {
+            var message = document.getElementById('message').value;
+            document.getElementById('message').value = '';
+
+            var chatBox = document.getElementById('chat-box');
+            chatBox.innerHTML += '<p><strong>User:</strong> ' + message + '</p>';
+
+            // You can use AJAX to send the message to the server and save it if needed
+            // Example:
+            // var xhr = new XMLHttpRequest();
+            // xhr.open('POST', 'process.php', true);
+            // xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+            // xhr.send('message=' + encodeURIComponent(message));
+        }
+    </script>
+</body>
+</html>

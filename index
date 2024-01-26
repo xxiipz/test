@@ -11,21 +11,52 @@
             border: 1px solid #ccc;
             padding: 10px;
         }
+
+        #avatar-canvas {
+            width: 100px;
+            height: 100px;
+            border: 1px solid #ccc;
+        }
     </style>
 </head>
 <body>
     <div id="chat-box"></div>
+    <div>
+        <canvas id="avatar-canvas"></canvas>
+        <button onclick="prevOption()">Previous</button>
+        <button onclick="nextOption()">Next</button>
+        <input type="color" id="color-picker" onchange="updateAvatar()">
+        <input type="text" id="username" placeholder="Enter your username">
+        <button onclick="setUsername()">Set Username</button>
+    </div>
     <input type="text" id="message" placeholder="Type your message">
     <button onclick="sendMessage()">Send</button>
 
     <script>
         const socket = new WebSocket('ws://your-server-ip:8080');
-        let username = localStorage.getItem('chat_username');
+        let username = localStorage.getItem('chat_username') || 'Guest';
+        let avatarOptions = {
+            eyes: ['👀', '😊', '😎'],
+            hair: ['🧑‍🦱', '🧑‍🦰', '👨‍🦲'],
+        };
+        let currentOptions = {
+            eyes: 0,
+            hair: 0,
+            color: '#000000', // Default color is black
+        };
 
-        if (!username) {
-            username = prompt('Enter your username:');
-            localStorage.setItem('chat_username', username);
+        if (!localStorage.getItem('chat_avatar_options')) {
+            localStorage.setItem('chat_avatar_options', JSON.stringify(avatarOptions));
+        } else {
+            avatarOptions = JSON.parse(localStorage.getItem('chat_avatar_options'));
         }
+
+        if (!localStorage.getItem('chat_username')) {
+            setUsername();
+        }
+
+        setupCanvas();
+        updateAvatar();
 
         socket.addEventListener('open', (event) => {
             console.log('WebSocket connection opened:', event);
@@ -33,8 +64,52 @@
 
         socket.addEventListener('message', (event) => {
             const message = JSON.parse(event.data);
-            displayMessage(message.username, message.message);
+            displayMessage(message.username, message.message, message.avatarOptions);
         });
+
+        function setUsername() {
+            username = prompt('Enter your username:') || 'Guest';
+            localStorage.setItem('chat_username', username);
+        }
+
+        function setupCanvas() {
+            const canvas = document.getElementById('avatar-canvas');
+            canvas.width = 100;
+            canvas.height = 100;
+        }
+
+        function drawAvatar() {
+            const canvas = document.getElementById('avatar-canvas');
+            const ctx = canvas.getContext('2d');
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.font = '20px Arial';
+            ctx.fillStyle = currentOptions.color;
+            ctx.fillText(avatarOptions.eyes[currentOptions.eyes], 40, 30);
+            ctx.fillText(avatarOptions.hair[currentOptions.hair], 40, 80);
+        }
+
+        function updateAvatar() {
+            const colorPicker = document.getElementById('color-picker');
+            currentOptions.color = colorPicker.value;
+            drawAvatar();
+        }
+
+        function prevOption() {
+            const optionKeys = Object.keys(currentOptions);
+            for (const key of optionKeys) {
+                currentOptions[key] = (currentOptions[key] - 1 + avatarOptions[key].length) % avatarOptions[key].length;
+            }
+            drawAvatar();
+        }
+
+        function nextOption() {
+            const optionKeys = Object.keys(currentOptions);
+            for (const key of optionKeys) {
+                currentOptions[key] = (currentOptions[key] + 1) % avatarOptions[key].length;
+            }
+            drawAvatar();
+        }
 
         function sendMessage() {
             const messageInput = document.getElementById('message');
@@ -44,19 +119,33 @@
                 const data = {
                     username,
                     message,
+                    avatarOptions: currentOptions,
                 };
 
                 socket.send(JSON.stringify(data));
                 messageInput.value = '';
 
                 // Display the user's own message
-                displayMessage(username, message);
+                displayMessage(username, message, currentOptions);
             }
         }
 
-        function displayMessage(username, message) {
+        function displayMessage(username, message, avatarOptions) {
             const chatBox = document.getElementById('chat-box');
-            chatBox.innerHTML += `<p><strong>${username}:</strong> ${message}</p>`;
+            const messageElement = document.createElement('div');
+
+            // Create a span for the username with the avatar
+            const usernameSpan = document.createElement('span');
+            usernameSpan.style.color = avatarOptions.color;
+            usernameSpan.textContent = `${username}: `;
+            messageElement.appendChild(usernameSpan);
+
+            // Create a span for the message
+            const messageSpan = document.createElement('span');
+            messageSpan.textContent = message;
+            messageElement.appendChild(messageSpan);
+
+            chatBox.appendChild(messageElement);
             chatBox.scrollTop = chatBox.scrollHeight;
         }
     </script>

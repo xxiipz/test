@@ -3,60 +3,117 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interactive Chat</title>
+    <title>Interactive Chat with Tic Tac Toe</title>
     <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+        }
+
+        #chat-container {
+            display: flex;
+        }
+
         #chat-box {
             height: 300px;
             overflow-y: scroll;
             border: 1px solid #ccc;
             padding: 10px;
+            margin-right: 20px;
+            width: 300px;
         }
 
-        #avatar-canvas {
-            width: 100px;
-            height: 100px;
+        #game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #board {
+            display: grid;
+            grid-template-columns: repeat(3, 50px);
+            grid-gap: 5px;
+        }
+
+        .cell {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            cursor: pointer;
+            background-color: #fff;
             border: 1px solid #ccc;
+        }
+
+        #message-input {
+            margin-top: 10px;
+        }
+
+        .user-options {
+            position: relative;
+            display: inline-block;
+        }
+
+        .options-content {
+            display: none;
+            position: absolute;
+            background-color: #f9f9f9;
+            min-width: 160px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+            padding: 10px;
+            z-index: 1;
+        }
+
+        .user-options:hover .options-content {
+            display: block;
+        }
+
+        .options-content button {
+            display: block;
+            margin-top: 5px;
+            padding: 5px;
+            cursor: pointer;
+            background-color: #4caf50;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
         }
     </style>
 </head>
 <body>
-    <div id="chat-box"></div>
-    <div>
-        <canvas id="avatar-canvas"></canvas>
-        <button onclick="prevOption()">Previous</button>
-        <button onclick="nextOption()">Next</button>
-        <input type="color" id="color-picker" onchange="updateAvatar()">
-        <input type="text" id="username" placeholder="Enter your username">
-        <button onclick="setUsername()">Set Username</button>
+    <div id="chat-container">
+        <div id="chat-box"></div>
+        <div id="game-container">
+            <div id="board"></div>
+            <div id="message-input">
+                <input type="text" id="message" placeholder="Type your message">
+                <button onclick="sendMessage()">Send</button>
+            </div>
+            <div class="user-options">
+                <span id="username-options" onclick="toggleOptions()">Game Options ▼</span>
+                <div class="options-content">
+                    <button onclick="playTicTacToe()">Play Tic Tac Toe</button>
+                </div>
+            </div>
+        </div>
     </div>
-    <input type="text" id="message" placeholder="Type your message">
-    <button onclick="sendMessage()">Send</button>
 
     <script>
         const socket = new WebSocket('ws://your-server-ip:8080');
         let username = localStorage.getItem('chat_username') || 'Guest';
-        let avatarOptions = {
-            eyes: ['👀', '😊', '😎'],
-            hair: ['🧑‍🦱', '🧑‍🦰', '👨‍🦲'],
-        };
-        let currentOptions = {
-            eyes: 0,
-            hair: 0,
-            color: '#000000', // Default color is black
-        };
+        let userId = localStorage.getItem('chat_user_id') || '';
+        let inGame = false;
+        let gameRequestPending = false;
 
-        if (!localStorage.getItem('chat_avatar_options')) {
-            localStorage.setItem('chat_avatar_options', JSON.stringify(avatarOptions));
-        } else {
-            avatarOptions = JSON.parse(localStorage.getItem('chat_avatar_options'));
-        }
-
-        if (!localStorage.getItem('chat_username')) {
-            setUsername();
-        }
-
-        setupCanvas();
-        updateAvatar();
+        updateUsernameDisplay();
 
         socket.addEventListener('open', (event) => {
             console.log('WebSocket connection opened:', event);
@@ -64,51 +121,20 @@
 
         socket.addEventListener('message', (event) => {
             const message = JSON.parse(event.data);
-            displayMessage(message.username, message.message, message.avatarOptions);
+
+            if (message.gameRequest) {
+                handleGameRequest(message.username, message.userId);
+            } else if (message.gameState) {
+                handleGameState(message.gameState);
+            } else {
+                displayMessage(message.username, message.message);
+            }
         });
 
-        function setUsername() {
-            username = prompt('Enter your username:') || 'Guest';
-            localStorage.setItem('chat_username', username);
-        }
-
-        function setupCanvas() {
-            const canvas = document.getElementById('avatar-canvas');
-            canvas.width = 100;
-            canvas.height = 100;
-        }
-
-        function drawAvatar() {
-            const canvas = document.getElementById('avatar-canvas');
-            const ctx = canvas.getContext('2d');
-
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.font = '20px Arial';
-            ctx.fillStyle = currentOptions.color;
-            ctx.fillText(avatarOptions.eyes[currentOptions.eyes], 40, 30);
-            ctx.fillText(avatarOptions.hair[currentOptions.hair], 40, 80);
-        }
-
-        function updateAvatar() {
-            const colorPicker = document.getElementById('color-picker');
-            currentOptions.color = colorPicker.value;
-            drawAvatar();
-        }
-
-        function prevOption() {
-            const optionKeys = Object.keys(currentOptions);
-            for (const key of optionKeys) {
-                currentOptions[key] = (currentOptions[key] - 1 + avatarOptions[key].length) % avatarOptions[key].length;
-            }
-            drawAvatar();
-        }
-
-        function nextOption() {
-            const optionKeys = Object.keys(currentOptions);
-            for (const key of optionKeys) {
-                currentOptions[key] = (currentOptions[key] + 1) % avatarOptions[key].length;
-            }
-            drawAvatar();
+        function updateUsernameDisplay() {
+            username = localStorage.getItem('chat_username') || 'Guest';
+            userId = localStorage.getItem('chat_user_id') || '';
+            document.getElementById('username-text').textContent = `${username} #${userId}`;
         }
 
         function sendMessage() {
@@ -118,35 +144,109 @@
             if (message !== '') {
                 const data = {
                     username,
+                    userId,
                     message,
-                    avatarOptions: currentOptions,
+                    inGame,
                 };
 
                 socket.send(JSON.stringify(data));
                 messageInput.value = '';
 
                 // Display the user's own message
-                displayMessage(username, message, currentOptions);
+                displayMessage(username, message);
             }
         }
 
-        function displayMessage(username, message, avatarOptions) {
+        function displayMessage(username, message) {
             const chatBox = document.getElementById('chat-box');
             const messageElement = document.createElement('div');
-
-            // Create a span for the username with the avatar
-            const usernameSpan = document.createElement('span');
-            usernameSpan.style.color = avatarOptions.color;
-            usernameSpan.textContent = `${username}: `;
-            messageElement.appendChild(usernameSpan);
-
-            // Create a span for the message
-            const messageSpan = document.createElement('span');
-            messageSpan.textContent = message;
-            messageElement.appendChild(messageSpan);
-
+            messageElement.textContent = `${username}: ${message}`;
             chatBox.appendChild(messageElement);
             chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function toggleOptions() {
+            const optionsContent = document.querySelector('.options-content');
+            optionsContent.style.display = optionsContent.style.display === 'block' ? 'none' : 'block';
+        }
+
+        function playTicTacToe() {
+            // Add logic to handle playing Tic Tac Toe
+            alert('Play Tic Tac Toe functionality will be implemented later.');
+        }
+
+        function requestGame() {
+            if (!inGame && !gameRequestPending) {
+                const data = {
+                    username,
+                    userId,
+                    gameRequest: true,
+                };
+
+                socket.send(JSON.stringify(data));
+                gameRequestPending = true;
+            }
+        }
+
+        function handleGameRequest(requestingUsername, requestingUserId) {
+            const acceptGame = confirm(`${requestingUsername}#${requestingUserId} wants to play Tic Tac Toe. Accept?`);
+            
+            const data = {
+                username,
+                userId,
+                gameRequestResponse: true,
+                acceptGame,
+                requestingUserId,
+            };
+
+            socket.send(JSON.stringify(data));
+
+            if (acceptGame) {
+                inGame = true;
+                gameRequestPending = false;
+                initializeTicTacToe();
+            } else {
+                gameRequestPending = false;
+            }
+        }
+
+        function initializeTicTacToe() {
+            const board = document.getElementById('board');
+            board.innerHTML = '';
+
+            for (let i = 0; i < 9; i++) {
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+                cell.dataset.index = i;
+                cell.addEventListener('click', () => makeMove(i));
+                board.appendChild(cell);
+            }
+        }
+
+        function makeMove(index) {
+            // Add logic to handle player moves
+            if (inGame) {
+                // Update the game state and send it to the other player
+                const gameState = {
+                    index,
+                    marker: 'X', // You can alternate between X and O
+                };
+
+                const data = {
+                    username,
+                    userId,
+                    gameState,
+                };
+
+                socket.send(JSON.stringify(data));
+                handleGameState(gameState);
+            }
+        }
+
+        function handleGameState(gameState) {
+            // Add logic to update the UI based on the game state
+            const cell = document.querySelector(`.cell[data-index="${gameState.index}"]`);
+            cell.textContent = gameState.marker;
         }
     </script>
 </body>

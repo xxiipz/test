@@ -1,0 +1,44 @@
+<?php
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $message = $_POST['message'];
+
+    // Save the message to the chat log file
+    file_put_contents('chatlog.txt', "User: $message\n", FILE_APPEND);
+
+    // You can customize the response as needed
+    echo 'Message sent successfully';
+} else {
+    // Display the chat log for GET requests
+    $chatLog = file_get_contents('chatlog.txt');
+
+    // Display the chat log on the page
+    echo '<!DOCTYPE html>';
+    echo '<html lang="en">';
+    echo '<head>';
+    echo '<meta charset="UTF-8">';
+    echo '<meta name="viewport" content="width=device-width, initial-scale=1.0">';
+    echo '<title>Simple Chat</title>';
+    echo '<style>';
+    echo '#chat-box {height: 300px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px;}';
+    echo '</style>';
+    echo '</head>';
+    echo '<body>';
+    echo '<div id="chat-box">' . $chatLog . '</div>';
+    echo '<input type="text" id="message" placeholder="Type your message">';
+    echo '<button onclick="sendMessage()">Send</button>';
+    echo '<script>';
+    echo 'function sendMessage() {';
+    echo 'var message = document.getElementById(\'message\').value;';
+    echo 'document.getElementById(\'message\').value = \'\';';
+    echo 'var chatBox = document.getElementById(\'chat-box\');';
+    echo 'chatBox.innerHTML += \'<p><strong>User:</strong> \' + message + \'</p>\';';
+    echo 'var xhr = new XMLHttpRequest();';
+    echo 'xhr.open(\'POST\', \'process.php\', true);';
+    echo 'xhr.setRequestHeader(\'Content-type\', \'application/x-www-form-urlencoded\');';
+    echo 'xhr.send(\'message=\' + encodeURIComponent(message));';
+    echo '}';
+    echo '</script>';
+    echo '</body>';
+    echo '</html>';
+}
+?>

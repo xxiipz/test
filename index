@@ -101,6 +101,7 @@
                 <span id="username-options" onclick="toggleOptions()">Game Options ▼</span>
                 <div class="options-content">
                     <button onclick="playTicTacToe()">Play Tic Tac Toe</button>
+                    <input type="color" id="colorPicker" value="#000000" onchange="changeColor()">
                 </div>
             </div>
         </div>
@@ -112,6 +113,7 @@
         let userId = localStorage.getItem('chat_user_id') || '';
         let inGame = false;
         let gameRequestPending = false;
+        let userColor = localStorage.getItem('chat_user_color') || '#000000';
 
         updateUsernameDisplay();
 
@@ -127,7 +129,7 @@
             } else if (message.gameState) {
                 handleGameState(message.gameState);
             } else {
-                displayMessage(message.username, message.message);
+                displayMessage(message.username, message.message, message.color);
             }
         });
 
@@ -147,20 +149,22 @@
                     userId,
                     message,
                     inGame,
+                    color: userColor,
                 };
 
                 socket.send(JSON.stringify(data));
                 messageInput.value = '';
 
                 // Display the user's own message
-                displayMessage(username, message);
+                displayMessage(username, message, userColor);
             }
         }
 
-        function displayMessage(username, message) {
+        function displayMessage(username, message, color) {
             const chatBox = document.getElementById('chat-box');
             const messageElement = document.createElement('div');
             messageElement.textContent = `${username}: ${message}`;
+            messageElement.style.color = color;
             chatBox.appendChild(messageElement);
             chatBox.scrollTop = chatBox.scrollHeight;
         }
@@ -171,11 +175,6 @@
         }
 
         function playTicTacToe() {
-            // Add logic to handle playing Tic Tac Toe
-            alert('Play Tic Tac Toe functionality will be implemented later.');
-        }
-
-        function requestGame() {
             if (!inGame && !gameRequestPending) {
                 const data = {
                     username,
@@ -224,9 +223,7 @@
         }
 
         function makeMove(index) {
-            // Add logic to handle player moves
             if (inGame) {
-                // Update the game state and send it to the other player
                 const gameState = {
                     index,
                     marker: 'X', // You can alternate between X and O
@@ -244,9 +241,14 @@
         }
 
         function handleGameState(gameState) {
-            // Add logic to update the UI based on the game state
             const cell = document.querySelector(`.cell[data-index="${gameState.index}"]`);
             cell.textContent = gameState.marker;
+        }
+
+        function changeColor() {
+            const colorPicker = document.getElementById('colorPicker');
+            userColor = colorPicker.value;
+            localStorage.setItem('chat_user_color', userColor);
         }
     </script>
 </body>

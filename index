@@ -19,7 +19,13 @@
     <button onclick="sendMessage()">Send</button>
 
     <script>
-        const socket = new WebSocket('ws://139.180.160.103:8080');
+        const socket = new WebSocket('ws://your-server-ip:8080');
+        let username = localStorage.getItem('chat_username');
+
+        if (!username) {
+            username = prompt('Enter your username:');
+            localStorage.setItem('chat_username', username);
+        }
 
         socket.addEventListener('open', (event) => {
             console.log('WebSocket connection opened:', event);
@@ -35,9 +41,6 @@
             const message = messageInput.value.trim();
 
             if (message !== '') {
-                const username = localStorage.getItem('chat_username') || prompt('Enter your username:');
-                localStorage.setItem('chat_username', username);
-
                 const data = {
                     username,
                     message,
@@ -45,6 +48,9 @@
 
                 socket.send(JSON.stringify(data));
                 messageInput.value = '';
+
+                // Display the user's own message
+                displayMessage(username, message);
             }
         }
 
